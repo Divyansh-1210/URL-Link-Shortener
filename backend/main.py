@@ -20,17 +20,20 @@ FRONTEND_DIR = BASE_DIR / "frontend"
 BASE_URL     = "http://localhost:8000"
 
 app = FastAPI(
-    title="URL Shortener API",
-    description="Full Stack URL Shortener with JWT Auth, Analytics & QR Codes",
+    title="Trimly URL Shortener API",
+    description="Shorten URLs, track clicks, generate QR codes. JWT auth included.",
     version="3.0.0"
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["*"], allow_credentials=True,
+    allow_methods=["*"], allow_headers=["*"],
 )
+
+# Serve frontend static assets (css/ and js/ subfolders)
+app.mount("/css", StaticFiles(directory=str(FRONTEND_DIR / "css")), name="css")
+app.mount("/js",  StaticFiles(directory=str(FRONTEND_DIR / "js")),  name="js")
 
 
 # ------------------------------------------------------------------
