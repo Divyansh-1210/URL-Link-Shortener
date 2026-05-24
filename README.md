@@ -156,7 +156,7 @@ GET /qr/my-github
 
 ---
 
-## 🔮 Upcoming (Phase 4)
+## 🔮 Future Improvements (Phase 4)
 
 - [ ] Deploy on Render (free hosting)
 - [ ] Link expiry (auto-delete after N days)
