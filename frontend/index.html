@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>TRIMLY - URL Shortener</title>
+<meta name="description" content="Trim long URLs instantly. Track clicks, use custom aliases, generate QR codes and share links with ease.">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&family=Inter:wght@400;500&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "on-surface": "#1c1b1f", "inverse-surface": "#313033",
+          "surface-tint": "#7c3aed", "on-surface-variant": "#49454f",
+          "background": "#fef7ff", "primary": "#7c3aed",
+          "on-background": "#1c1b1f", "error-container": "#ffdad6",
+          "primary-fixed-dim": "#d2bbff", "outline": "#79747e",
+          "on-primary": "#ffffff", "primary-fixed": "#eaddff",
+          "outline-variant": "#cac4d0", "surface-container-high": "#ece6f0",
+          "on-primary-fixed": "#25005a", "primary-container": "#eaddff",
+          "surface-container": "#f3edf7", "on-primary-container": "#25005a",
+          "error": "#ba1a1a", "secondary-fixed-dim": "#3cddc7",
+          "inverse-on-surface": "#f4eff4", "surface-variant": "#e7e0ec",
+          "surface-container-highest": "#e6e0e9", "on-error": "#ffffff",
+          "inverse-primary": "#d2bbff", "surface": "#fef7ff",
+          "secondary-container": "#62fae3", "surface-container-lowest": "#ffffff",
+          "secondary-fixed": "#62fae3", "on-primary-fixed-variant": "#5a00c6",
+          "secondary": "#006a5e", "surface-container-low": "#f7f2fa",
+          "on-secondary-container": "#00201c"
+        },
+        borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+        spacing: { "gutter": "24px", "stack-lg": "48px", "margin-mobile": "16px", "stack-sm": "8px", "stack-md": "24px" },
+        fontFamily: {
+          "headline-md": ["Plus Jakarta Sans"], "data-table": ["Inter"],
+          "display-lg": ["Plus Jakarta Sans"], "display-lg-mobile": ["Plus Jakarta Sans"],
+          "label-caps": ["JetBrains Mono"], "body-md": ["Inter"]
+        },
+        fontSize: {
+          "headline-md": ["24px", { "lineHeight": "1.4", "fontWeight": "700" }],
+          "data-table": ["14px", { "lineHeight": "1.5", "fontWeight": "500" }],
+          "display-lg": ["56px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+          "display-lg-mobile": ["36px", { "lineHeight": "1.2", "fontWeight": "800" }],
+          "label-caps": ["12px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700" }],
+          "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }]
+        }
+      }
+    }
+  }
+</script>
+<style type="text/tailwindcss">
+  @layer utilities {
+    .card { @apply bg-surface-container-lowest dark:bg-[#12121A] border border-outline-variant/20 dark:border-white/10; }
+  }
+  .drop-glow { box-shadow: 0px 4px 20px rgba(124, 58, 237, 0.3); }
+  .text-gradient {
+    background: linear-gradient(to right, #7c3aed, #006a5e);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .dark .text-gradient {
+    background: linear-gradient(to right, #d2bbff, #44e2cd);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .btn-gradient { background: linear-gradient(to right, #7c3aed, #5a00c6); }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .slide-down { animation: slideDown 0.35s ease forwards; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .fade-in { animation: fadeIn 0.25s ease forwards; }
+
+  #toast {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 9999;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.7s linear infinite; display: none;
+  }
+
+  /* Modal backdrop — hidden by default, shown via JS */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .modal-backdrop.open { display: flex; }
+</style>
+</head>
+
+<body class="font-body-md antialiased min-h-screen flex flex-col bg-background dark:bg-[#050509] text-on-surface dark:text-[#e4e1e9]">
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     AUTH MODAL
+════════════════════════════════════════════════════════════════════ -->
+<div id="authModal" class="modal-backdrop">
+  <div class="card rounded-xl w-full max-w-md p-8 fade-in relative">
+    <!-- Close -->
+    <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-on-surface-variant dark:text-outline-variant hover:text-on-surface transition-colors p-1">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+
+    <!-- Tabs -->
+    <div class="flex gap-1 mb-6 bg-surface-container dark:bg-white/5 p-1 rounded-lg">
+      <button id="tabLogin" onclick="switchTab('login')" class="flex-1 py-2 rounded-DEFAULT font-label-caps text-label-caps transition-all bg-surface-container-lowest dark:bg-[#1a1a2e] text-primary shadow-sm">LOGIN</button>
+      <button id="tabRegister" onclick="switchTab('register')" class="flex-1 py-2 rounded-DEFAULT font-label-caps text-label-caps transition-all text-on-surface-variant dark:text-outline-variant">REGISTER</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="loginForm">
+      <h2 class="font-headline-md text-headline-md mb-6">Welcome back 👋</h2>
+      <div class="flex flex-col gap-4">
+        <div>
+          <label class="font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant block mb-1">USERNAME</label>
+          <input id="loginUsername" type="text" placeholder="your_username" class="w-full bg-surface-container dark:bg-[#1a1a2e] border border-outline-variant/20 dark:border-white/10 rounded-DEFAULT py-3 px-4 text-on-surface dark:text-[#e4e1e9] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-body-md">
+        </div>
+        <div>
+          <label class="font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant block mb-1">PASSWORD</label>
+          <input id="loginPassword" type="password" placeholder="••••••••" class="w-full bg-surface-container dark:bg-[#1a1a2e] border border-outline-variant/20 dark:border-white/10 rounded-DEFAULT py-3 px-4 text-on-surface dark:text-[#e4e1e9] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-body-md">
+        </div>
+        <div id="loginError" class="hidden text-error font-data-table text-data-table flex items-center gap-2">
+          <span class="material-symbols-outlined text-[16px]">error</span><span id="loginErrorMsg"></span>
+        </div>
+        <button onclick="doLogin()" id="loginBtn" class="w-full btn-gradient drop-glow text-white font-data-table font-bold py-3 px-6 rounded-DEFAULT flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+          <div class="spinner" id="loginSpinner"></div>
+          <span class="material-symbols-outlined text-sm">login</span>
+          <span>Login</span>
+        </button>
+        <p class="text-center font-data-table text-data-table text-on-surface-variant dark:text-outline-variant">
+          No account? <button onclick="switchTab('register')" class="text-primary hover:underline">Register here</button>
+        </p>
+      </div>
+    </div>
+
+    <!-- Register Form -->
+    <div id="registerForm" class="hidden">
+      <h2 class="font-headline-md text-headline-md mb-6">Create Account 🚀</h2>
+      <div class="flex flex-col gap-4">
+        <div>
+          <label class="font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant block mb-1">USERNAME</label>
+          <input id="regUsername" type="text" placeholder="your_username" class="w-full bg-surface-container dark:bg-[#1a1a2e] border border-outline-variant/20 dark:border-white/10 rounded-DEFAULT py-3 px-4 text-on-surface dark:text-[#e4e1e9] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-body-md">
+        </div>
+        <div>
+          <label class="font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant block mb-1">EMAIL</label>
+          <input id="regEmail" type="email" placeholder="you@example.com" class="w-full bg-surface-container dark:bg-[#1a1a2e] border border-outline-variant/20 dark:border-white/10 rounded-DEFAULT py-3 px-4 text-on-surface dark:text-[#e4e1e9] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-body-md">
+        </div>
+        <div>
+          <label class="font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant block mb-1">PASSWORD</label>
+          <input id="regPassword" type="password" placeholder="Min. 6 characters" class="w-full bg-surface-container dark:bg-[#1a1a2e] border border-outline-variant/20 dark:border-white/10 rounded-DEFAULT py-3 px-4 text-on-surface dark:text-[#e4e1e9] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-body-md">
+        </div>
+        <div id="regError" class="hidden text-error font-data-table text-data-table flex items-center gap-2">
+          <span class="material-symbols-outlined text-[16px]">error</span><span id="regErrorMsg"></span>
+        </div>
+        <button onclick="doRegister()" id="registerBtn" class="w-full btn-gradient drop-glow text-white font-data-table font-bold py-3 px-6 rounded-DEFAULT flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+          <div class="spinner" id="registerSpinner"></div>
+          <span class="material-symbols-outlined text-sm">person_add</span>
+          <span>Create Account</span>
+        </button>
+        <p class="text-center font-data-table text-data-table text-on-surface-variant dark:text-outline-variant">
+          Already have account? <button onclick="switchTab('login')" class="text-primary hover:underline">Login here</button>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     QR CODE MODAL
+════════════════════════════════════════════════════════════════════ -->
+<div id="qrModal" class="modal-backdrop">
+  <div class="card rounded-xl w-full max-w-sm p-8 fade-in relative text-center">
+    <button onclick="closeQrModal()" class="absolute top-4 right-4 text-on-surface-variant dark:text-outline-variant hover:text-on-surface transition-colors p-1">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <p class="font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant mb-2">QR CODE FOR</p>
+    <p id="qrShortUrl" class="font-headline-md text-headline-md text-primary dark:text-inverse-primary mb-6 break-all"></p>
+    <div class="flex justify-center mb-6">
+      <img id="qrImage" src="" alt="QR Code" class="rounded-lg border border-outline-variant/20 dark:border-white/10 w-48 h-48 object-contain bg-white p-2">
+    </div>
+    <a id="qrDownload" href="#" download class="inline-flex items-center gap-2 btn-gradient drop-glow text-white font-data-table font-bold py-2.5 px-6 rounded-DEFAULT hover:opacity-90 transition-opacity">
+      <span class="material-symbols-outlined text-sm">download</span> Download QR
+    </a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     DESKTOP NAV
+════════════════════════════════════════════════════════════════════ -->
+<nav class="sticky top-0 z-50 bg-surface-container-lowest/80 dark:bg-[#050509]/90 backdrop-blur-md border-b border-transparent dark:border-white/5 w-full hidden md:block">
+  <div class="flex justify-between items-center w-full px-gutter max-w-[1100px] mx-auto h-20">
+    <div class="font-headline-md text-headline-md font-bold tracking-tighter text-primary flex items-center gap-2">
+      <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">bolt</span>
+      TRIMLY
+    </div>
+    <div class="hidden md:flex items-center gap-stack-md">
+      <a class="text-primary font-bold hover:bg-primary-container/10 dark:hover:bg-white/5 transition-all duration-200 px-2 py-1 rounded" href="#hero">Dashboard</a>
+      <a class="text-on-surface-variant dark:text-outline-variant font-body-md hover:text-primary dark:hover:text-white transition-all duration-200 px-2 py-1 rounded" href="#analytics">Analytics</a>
+      <a class="text-on-surface-variant dark:text-outline-variant font-body-md hover:text-primary dark:hover:text-white transition-all duration-200 px-2 py-1 rounded" href="/docs" target="_blank">API Docs</a>
+      <a class="text-on-surface-variant dark:text-outline-variant font-body-md hover:text-primary dark:hover:text-white transition-all duration-200 px-2 py-1 rounded" href="#" onclick="showPricingToast(event)">Pricing</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="px-3 py-1 rounded-full bg-secondary-container/30 dark:bg-secondary-container/15 text-secondary dark:text-secondary-fixed border border-secondary/20 font-label-caps text-label-caps flex items-center gap-1">
+        API v3.0 LIVE
+      </span>
+      <button aria-label="Toggle Theme" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant/30 dark:border-white/15 bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-white hover:border-primary/40 transition-all duration-200 font-label-caps text-label-caps" id="theme-toggle">
+        <span class="material-symbols-outlined text-[18px] dark:hidden">dark_mode</span>
+        <span class="material-symbols-outlined text-[18px] hidden dark:block">light_mode</span>
+        <span class="dark:hidden">DARK</span>
+        <span class="hidden dark:block">LIGHT</span>
+      </button>
+      <!-- Auth buttons — guest state -->
+      <div id="navGuest" class="flex items-center gap-2">
+        <button onclick="openAuthModal('login')" class="font-data-table text-data-table text-on-surface-variant dark:text-outline-variant hover:text-on-surface dark:hover:text-white transition-colors px-3 py-2">Sign In</button>
+        <button onclick="openAuthModal('register')" class="bg-primary-container dark:bg-primary-container text-on-primary-container dark:text-on-primary-container px-4 py-2 rounded-DEFAULT font-data-table hover:opacity-90 transition-opacity">Get Started</button>
+      </div>
+      <!-- Auth buttons — logged in state -->
+      <div id="navUser" class="hidden items-center gap-2">
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 dark:bg-primary/20 border border-primary/20">
+          <span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1;">account_circle</span>
+          <span id="navUsername" class="font-label-caps text-label-caps text-primary"></span>
+        </div>
+        <button onclick="doLogout()" class="flex items-center gap-1 px-3 py-2 rounded-DEFAULT border border-outline-variant/20 dark:border-white/10 text-on-surface-variant dark:text-outline-variant hover:text-error hover:border-error/30 transition-colors font-data-table text-data-table">
+          <span class="material-symbols-outlined text-[16px]">logout</span> Logout
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MOBILE NAV
+════════════════════════════════════════════════════════════════════ -->
+<nav class="sticky top-0 z-50 bg-surface-container-lowest/80 dark:bg-[#050509]/90 backdrop-blur-md border-b border-transparent dark:border-white/5 w-full flex md:hidden items-center justify-between px-margin-mobile h-16">
+  <div class="font-headline-md text-headline-md font-bold tracking-tighter text-primary flex items-center gap-2">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">bolt</span>
+    TRIMLY
+  </div>
+  <div class="flex items-center gap-2">
+    <button class="flex items-center gap-1 px-3 py-1.5 rounded-full border border-outline-variant/30 dark:border-white/15 bg-surface-container dark:bg-white/5 text-on-surface-variant dark:text-outline-variant hover:text-primary transition-all font-label-caps text-label-caps" id="mobile-theme-toggle">
+      <span class="material-symbols-outlined text-[18px] dark:hidden">dark_mode</span>
+      <span class="material-symbols-outlined text-[18px] hidden dark:block">light_mode</span>
+    </button>
+    <div id="mobileNavGuest">
+      <button onclick="openAuthModal('login')" class="flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary text-white font-label-caps text-label-caps">
+        <span class="material-symbols-outlined text-[16px]">login</span> Login
+      </button>
+    </div>
+    <div id="mobileNavUser" class="hidden">
+      <button onclick="doLogout()" class="flex items-center gap-1 px-3 py-1.5 rounded-full border border-outline-variant/20 dark:border-white/10 text-on-surface-variant dark:text-outline-variant font-label-caps text-label-caps">
+        <span class="material-symbols-outlined text-[16px]">logout</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MAIN CONTENT
+════════════════════════════════════════════════════════════════════ -->
+<main class="flex-grow w-full max-w-[1100px] mx-auto px-margin-mobile md:px-gutter py-stack-lg">
+
+  <!-- Hero -->
+  <section id="hero" class="text-center mb-stack-lg flex flex-col items-center">
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-outline-variant/20 dark:border-white/10 bg-surface-container dark:bg-white/5 mb-6">
+      <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+      <span class="font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant">Trim · Share · Track</span>
+    </div>
+    <h1 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-surface dark:text-[#e4e1e9] mb-4 max-w-3xl">
+      Trim Your Long URLs <br><span class="text-gradient">Snap-Short</span>
+    </h1>
+    <p class="font-body-md text-body-md text-on-surface-variant dark:text-outline-variant max-w-2xl mx-auto">
+      Paste any long URL, get a trimmed link instantly. Track clicks, generate QR codes and share with confidence.
+    </p>
+  </section>
+
+  <!-- Input Card -->
+  <section class="card rounded-xl p-stack-md mb-stack-lg max-w-4xl mx-auto">
+    <div class="flex flex-col md:flex-row gap-stack-md items-end">
+      <div class="w-full md:w-3/5 flex flex-col gap-2">
+        <label class="font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant" for="longUrlInput">LONG URL</label>
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant">link</span>
+          <input id="longUrlInput" class="w-full bg-surface-container dark:bg-[#1a1a2e] border border-outline-variant/20 dark:border-white/10 rounded-DEFAULT py-3 pl-10 pr-4 text-on-surface dark:text-[#e4e1e9] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-body-md placeholder:text-outline-variant" placeholder="https://example.com/your-very-long-url" type="text">
+        </div>
+      </div>
+      <div class="w-full md:w-1/4 flex flex-col gap-2">
+        <label class="font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant" for="customCodeInput">CUSTOM ALIAS (OPTIONAL)</label>
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant">edit</span>
+          <input id="customCodeInput" class="w-full bg-surface-container dark:bg-[#1a1a2e] border border-outline-variant/20 dark:border-white/10 rounded-DEFAULT py-3 pl-10 pr-4 text-on-surface dark:text-[#e4e1e9] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-body-md placeholder:text-outline-variant" placeholder="e.g. my-link" type="text">
+        </div>
+      </div>
+      <div class="w-full md:w-auto flex-shrink-0">
+        <button id="shortenBtn" onclick="shortenURL()" class="w-full btn-gradient drop-glow text-white font-data-table font-bold py-3 px-6 rounded-DEFAULT flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed">
+          <div class="spinner" id="spinner"></div>
+          <span class="material-symbols-outlined text-sm" id="btnIcon">bolt</span>
+          <span id="btnText">Shorten URL</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div id="resultBox" class="hidden mt-stack-md slide-down">
+      <div class="flex items-start gap-3 p-4 rounded-lg bg-secondary-container/20 dark:bg-secondary-container/10 border border-secondary/20 dark:border-secondary-fixed/20">
+        <span class="material-symbols-outlined text-secondary dark:text-secondary-fixed mt-0.5" style="font-variation-settings:'FILL' 1;">check_circle</span>
+        <div class="flex-1 min-w-0">
+          <p class="font-label-caps text-label-caps text-secondary dark:text-secondary-fixed mb-1">YOUR SHORT URL IS READY!</p>
+          <div class="flex items-center gap-3 flex-wrap">
+            <a id="resultUrl" href="#" target="_blank" class="font-headline-md text-headline-md text-primary dark:text-inverse-primary break-all hover:underline"></a>
+            <button onclick="copyResult()" class="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-DEFAULT border border-secondary/30 dark:border-secondary-fixed/30 text-secondary dark:text-secondary-fixed font-data-table hover:bg-secondary/10 transition-colors">
+              <span class="material-symbols-outlined text-[14px]">content_copy</span> Copy
+            </button>
+            <button id="resultQrBtn" onclick="" class="flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-DEFAULT border border-primary/30 text-primary font-data-table hover:bg-primary/10 transition-colors">
+              <span class="material-symbols-outlined text-[14px]">qr_code</span> QR
+            </button>
+          </div>
+          <p id="resultMeta" class="font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant mt-1 opacity-70"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="errorBox" class="hidden mt-stack-md">
+      <div class="flex items-center gap-3 p-4 rounded-lg bg-error-container/40 dark:bg-error-container/10 border border-error/20">
+        <span class="material-symbols-outlined text-error" style="font-variation-settings:'FILL' 1;">error</span>
+        <p id="errorMsg" class="font-data-table text-data-table text-error"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <section id="analytics" class="grid grid-cols-1 md:grid-cols-3 gap-stack-md mb-stack-lg">
+    <div class="card rounded-xl p-stack-md text-center flex flex-col items-center justify-center min-h-[120px]">
+      <span id="statTotal" class="font-display-lg-mobile text-display-lg-mobile text-primary mb-2">0</span>
+      <span class="font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant">TOTAL URLS</span>
+    </div>
+    <div class="card rounded-xl p-stack-md text-center flex flex-col items-center justify-center min-h-[120px]">
+      <span id="statClicks" class="font-display-lg-mobile text-display-lg-mobile text-secondary dark:text-secondary-fixed mb-2">0</span>
+      <span class="font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant">TOTAL CLICKS</span>
+    </div>
+    <div class="card rounded-xl p-stack-md text-center flex flex-col items-center justify-center min-h-[120px]">
+      <span id="statTop" class="font-display-lg-mobile text-display-lg-mobile text-secondary dark:text-secondary-fixed mb-2">—</span>
+      <span class="font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant">TOP CLICKED</span>
+    </div>
+  </section>
+
+  <!-- Chart -->
+  <section class="card rounded-xl p-stack-md mb-stack-lg">
+    <h2 class="font-headline-md text-headline-md text-on-surface dark:text-[#e4e1e9] flex items-center gap-2 mb-6">
+      <span class="material-symbols-outlined text-primary">bar_chart</span>
+      Click Analytics — Top Links
+    </h2>
+    <div class="relative h-64">
+      <canvas id="analyticsChart"></canvas>
+      <div id="chartEmpty" class="absolute inset-0 flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant">
+        <span class="material-symbols-outlined text-4xl opacity-30 mb-2">bar_chart</span>
+        <span class="font-label-caps text-label-caps opacity-50">Shorten URLs to see analytics</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Links Table -->
+  <section id="links" class="mb-stack-lg">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+      <h2 class="font-headline-md text-headline-md text-on-surface dark:text-[#e4e1e9] flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary">list_alt</span>
+        All Shortened Links
+      </h2>
+      <div class="flex items-center gap-2">
+        <!-- My Links toggle (only visible when logged in) -->
+        <div id="myLinksToggle" class="hidden flex items-center gap-1 bg-surface-container dark:bg-white/5 rounded-lg p-1">
+          <button id="btnAllLinks" onclick="switchLinksView('all')" class="px-3 py-1 rounded-DEFAULT font-label-caps text-label-caps text-primary bg-surface-container-lowest dark:bg-[#1a1a2e] shadow-sm transition-all">ALL</button>
+          <button id="btnMyLinks" onclick="switchLinksView('mine')" class="px-3 py-1 rounded-DEFAULT font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant transition-all">MINE</button>
+        </div>
+        <button onclick="loadLinks()" class="flex items-center gap-2 px-3 py-1.5 rounded-DEFAULT border border-outline-variant/20 dark:border-white/10 text-on-surface-variant dark:text-outline-variant hover:text-on-surface dark:hover:text-white hover:bg-surface-container dark:hover:bg-white/5 transition-colors font-data-table text-data-table">
+          <span class="material-symbols-outlined text-[16px]">refresh</span> Refresh
+        </button>
+      </div>
+    </div>
+    <div class="card rounded-xl overflow-x-auto">
+      <table class="w-full text-left border-collapse min-w-[750px]">
+        <thead>
+          <tr class="border-b border-outline-variant/20 dark:border-white/10 bg-surface-container/50">
+            <th class="py-4 px-6 font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant w-[140px]">SHORT LINK</th>
+            <th class="py-4 px-6 font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant w-[240px] max-w-[240px]">ORIGINAL URL</th>
+            <th class="py-4 px-6 font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant w-[90px]">CLICKS</th>
+            <th class="py-4 px-6 font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant w-[120px]">OWNER</th>
+            <th class="py-4 px-6 font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant w-[110px]">CREATED</th>
+            <th class="py-4 px-6 font-label-caps text-label-caps text-on-surface-variant dark:text-outline-variant text-right">ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody id="linksBody" class="font-data-table text-data-table"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- Footer -->
+<footer class="bg-surface-container-lowest dark:bg-inverse-surface border-t border-outline-variant/20 dark:border-white/5 w-full mt-auto opacity-80 hover:opacity-100 transition-opacity">
+  <div class="max-w-[1100px] mx-auto px-gutter py-stack-lg flex flex-col md:flex-row justify-between items-center gap-stack-md">
+    <div class="flex flex-col items-center md:items-start gap-2">
+      <div class="font-headline-md text-headline-md text-primary flex items-center gap-2">
+        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">bolt</span>
+        TRIMLY
+      </div>
+      <p class="font-body-md text-body-md text-on-surface-variant dark:text-outline-variant text-sm text-center md:text-left">
+        © 2025 Trimly. Built for Electric Efficiency.
+      </p>
+    </div>
+    <div class="flex flex-wrap justify-center gap-4 md:gap-8 font-label-caps text-label-caps">
+      <a class="text-on-surface-variant dark:text-outline-variant hover:text-secondary dark:hover:text-secondary-fixed hover:underline transition-all" href="#" onclick="showInfoToast(event,'📄 Open-source project. Use freely!')">Terms of Service</a>
+      <a class="text-on-surface-variant dark:text-outline-variant hover:text-secondary dark:hover:text-secondary-fixed hover:underline transition-all" href="#" onclick="showInfoToast(event,'🔒 No data shared or sold. Ever.')">Privacy Policy</a>
+      <a class="text-on-surface-variant dark:text-outline-variant hover:text-secondary dark:hover:text-secondary-fixed hover:underline transition-all" href="#" onclick="showInfoToast(event,'✅ All systems operational!')">System Status</a>
+      <a class="text-on-surface-variant dark:text-outline-variant hover:text-secondary dark:hover:text-secondary-fixed hover:underline transition-all" href="mailto:support@trimly.io">Contact Support</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Toast -->
+<div id="toast" class="px-5 py-3 rounded-xl bg-white dark:bg-[#1e1e2e] text-on-surface dark:text-[#e4e1e9] font-label-caps text-label-caps flex items-center gap-3 shadow-2xl border-l-4 border-primary" style="min-width:260px">
+  <span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings:'FILL' 1;" id="toastIcon">check_circle</span>
+  <span id="toastMsg" class="flex-1">Done!</span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════════════════ -->
+<script>
+const API = '';
+let chartInstance = null;
+let currentView = 'all'; // 'all' or 'mine'
+
+// ── Init ──────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Theme toggles
+  ['theme-toggle', 'mobile-theme-toggle'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.addEventListener('click', () => document.documentElement.classList.toggle('dark'));
+  });
+
+  // Enter key on URL input
+  document.getElementById('longUrlInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') shortenURL();
+  });
+
+  // Restore session if token exists
+  const token = localStorage.getItem('token');
+  if (token) updateNavAuth(localStorage.getItem('username'));
+
+  loadLinks();
+});
+
+// ── Auth State ────────────────────────────────────────────────────────
+function updateNavAuth(username) {
+  // Desktop
+  document.getElementById('navGuest').classList.add('hidden');
+  document.getElementById('navUser').classList.remove('hidden');
+  document.getElementById('navUser').classList.add('flex');
+  document.getElementById('navUsername').textContent = username;
+  // Mobile
+  document.getElementById('mobileNavGuest').classList.add('hidden');
+  document.getElementById('mobileNavUser').classList.remove('hidden');
+  // Show My Links toggle
+  document.getElementById('myLinksToggle').classList.remove('hidden');
+  document.getElementById('myLinksToggle').classList.add('flex');
+}
+
+function updateNavGuest() {
+  document.getElementById('navGuest').classList.remove('hidden');
+  document.getElementById('navUser').classList.add('hidden');
+  document.getElementById('navUser').classList.remove('flex');
+  document.getElementById('mobileNavGuest').classList.remove('hidden');
+  document.getElementById('mobileNavUser').classList.add('hidden');
+  document.getElementById('myLinksToggle').classList.add('hidden');
+}
+
+// ── Auth Modal ────────────────────────────────────────────────────────
+function openAuthModal(tab = 'login') {
+  document.getElementById('authModal').classList.add('open');
+  switchTab(tab);
+}
+
+function closeAuthModal() {
+  document.getElementById('authModal').classList.remove('open');
+  clearAuthErrors();
+}
+
+function switchTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('loginForm').classList.toggle('hidden', !isLogin);
+  document.getElementById('registerForm').classList.toggle('hidden', isLogin);
+  const loginTab = document.getElementById('tabLogin');
+  const regTab = document.getElementById('tabRegister');
+  if (isLogin) {
+    loginTab.classList.add('bg-surface-container-lowest', 'dark:bg-[#1a1a2e]', 'text-primary', 'shadow-sm');
+    loginTab.classList.remove('text-on-surface-variant', 'dark:text-outline-variant');
+    regTab.classList.remove('bg-surface-container-lowest', 'dark:bg-[#1a1a2e]', 'text-primary', 'shadow-sm');
+    regTab.classList.add('text-on-surface-variant', 'dark:text-outline-variant');
+  } else {
+    regTab.classList.add('bg-surface-container-lowest', 'dark:bg-[#1a1a2e]', 'text-primary', 'shadow-sm');
+    regTab.classList.remove('text-on-surface-variant', 'dark:text-outline-variant');
+    loginTab.classList.remove('bg-surface-container-lowest', 'dark:bg-[#1a1a2e]', 'text-primary', 'shadow-sm');
+    loginTab.classList.add('text-on-surface-variant', 'dark:text-outline-variant');
+  }
+}
+
+function clearAuthErrors() {
+  document.getElementById('loginError').classList.add('hidden');
+  document.getElementById('regError').classList.add('hidden');
+}
+
+// ── Login ─────────────────────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const spinner  = document.getElementById('loginSpinner');
+  const btn      = document.getElementById('loginBtn');
+  if (!username || !password) { showAuthError('login', 'Please fill in all fields.'); return; }
+
+  btn.disabled = true; spinner.style.display = 'block';
+  try {
+    const res  = await fetch(`${API}/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) { showAuthError('login', data.detail); return; }
+    localStorage.setItem('token', data.access_token);
+    localStorage.setItem('username', data.username);
+    updateNavAuth(data.username);
+    closeAuthModal();
+    showToast(`👋 Welcome back, ${data.username}!`);
+    loadLinks();
+  } catch { showAuthError('login', 'Network error.'); }
+  finally { btn.disabled = false; spinner.style.display = 'none'; }
+}
+
+// ── Register ──────────────────────────────────────────────────────────
+async function doRegister() {
+  const username = document.getElementById('regUsername').value.trim();
+  const email    = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const spinner  = document.getElementById('registerSpinner');
+  const btn      = document.getElementById('registerBtn');
+  if (!username || !email || !password) { showAuthError('reg', 'Please fill in all fields.'); return; }
+
+  btn.disabled = true; spinner.style.display = 'block';
+  try {
+    const res  = await fetch(`${API}/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) { showAuthError('reg', data.detail); return; }
+    localStorage.setItem('token', data.access_token);
+    localStorage.setItem('username', data.username);
+    updateNavAuth(data.username);
+    closeAuthModal();
+    showToast(`🎉 Account created! Welcome, ${data.username}!`);
+    loadLinks();
+  } catch { showAuthError('reg', 'Network error.'); }
+  finally { btn.disabled = false; spinner.style.display = 'none'; }
+}
+
+function showAuthError(form, msg) {
+  const prefix = form === 'login' ? 'login' : 'reg';
+  document.getElementById(`${prefix}Error`).classList.remove('hidden');
+  document.getElementById(`${prefix}ErrorMsg`).textContent = msg;
+}
+
+// ── Logout ────────────────────────────────────────────────────────────
+function doLogout() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('username');
+  updateNavGuest();
+  currentView = 'all';
+  switchLinksView('all');
+  showToast('👋 Logged out successfully!');
+  loadLinks();
+}
+
+// ── Links View Toggle (All / Mine) ────────────────────────────────────
+function switchLinksView(view) {
+  currentView = view;
+  document.getElementById('btnAllLinks').classList.toggle('text-primary', view === 'all');
+  document.getElementById('btnAllLinks').classList.toggle('bg-surface-container-lowest', view === 'all');
+  document.getElementById('btnAllLinks').classList.toggle('dark:bg-[#1a1a2e]', view === 'all');
+  document.getElementById('btnAllLinks').classList.toggle('shadow-sm', view === 'all');
+  document.getElementById('btnAllLinks').classList.toggle('text-on-surface-variant', view !== 'all');
+  document.getElementById('btnMyLinks').classList.toggle('text-primary', view === 'mine');
+  document.getElementById('btnMyLinks').classList.toggle('bg-surface-container-lowest', view === 'mine');
+  document.getElementById('btnMyLinks').classList.toggle('dark:bg-[#1a1a2e]', view === 'mine');
+  document.getElementById('btnMyLinks').classList.toggle('shadow-sm', view === 'mine');
+  document.getElementById('btnMyLinks').classList.toggle('text-on-surface-variant', view !== 'mine');
+  loadLinks();
+}
+
+// ── Shorten URL ───────────────────────────────────────────────────────
+async function shortenURL() {
+  const longUrl    = document.getElementById('longUrlInput').value.trim();
+  const customCode = document.getElementById('customCodeInput').value.trim();
+  const btn        = document.getElementById('shortenBtn');
+  const spinner    = document.getElementById('spinner');
+  const btnIcon    = document.getElementById('btnIcon');
+  const btnText    = document.getElementById('btnText');
+  const resultBox  = document.getElementById('resultBox');
+  const errorBox   = document.getElementById('errorBox');
+
+  if (!longUrl) { showError('Please enter a URL first.'); return; }
+
+  btn.disabled = true; spinner.style.display = 'block';
+  btnIcon.style.display = 'none'; btnText.textContent = 'Shortening...';
+  resultBox.classList.add('hidden'); errorBox.classList.add('hidden');
+
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('token');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const body = { long_url: longUrl };
+    if (customCode) body.custom_code = customCode;
+
+    const res  = await fetch(`${API}/shorten`, { method: 'POST', headers, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok) { showError(data.detail || 'Something went wrong.'); return; }
+
+    const urlEl = document.getElementById('resultUrl');
+    urlEl.textContent = data.short_url; urlEl.href = data.short_url;
+    document.getElementById('resultMeta').textContent =
+      `Code: ${data.short_code}  ·  ${data.owner ? '👤 ' + data.owner : '🌐 Anonymous'}  ·  ${formatDate(data.created_at)}`;
+    document.getElementById('resultQrBtn').onclick = () => openQrModal(data.short_code, data.short_url);
+
+    resultBox.classList.remove('hidden'); resultBox.classList.add('slide-down');
+    document.getElementById('longUrlInput').value = '';
+    document.getElementById('customCodeInput').value = '';
+    loadLinks();
+  } catch { showError('Network error. Is the server running?'); }
+  finally {
+    btn.disabled = false; spinner.style.display = 'none';
+    btnIcon.style.display = ''; btnText.textContent = 'Shorten URL';
+  }
+}
+
+// ── Load Links ────────────────────────────────────────────────────────
+async function loadLinks() {
+  try {
+    const token = localStorage.getItem('token');
+    const endpoint = (currentView === 'mine' && token) ? '/my-urls' : '/urls';
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res  = await fetch(`${API}${endpoint}`, { headers });
+    const data = await res.json();
+    renderTable(data);
+    renderStats(data);
+    renderChart(data);
+  } catch (err) { console.error('Failed to load links:', err); }
+}
+
+// ── Render Table ──────────────────────────────────────────────────────
+function renderTable(urls) {
+  const tbody = document.getElementById('linksBody');
+  if (!urls.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="py-12 text-center text-on-surface-variant dark:text-outline-variant">
+      <span class="material-symbols-outlined text-4xl block mb-2 opacity-30">link_off</span>
+      <span class="font-label-caps text-label-caps opacity-50">No links yet. Shorten your first URL above!</span>
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = urls.map(u => {
+    const hasClicks = u.click_count > 0;
+    const badgeCls  = hasClicks
+      ? 'bg-primary/10 text-primary border-primary/20'
+      : 'bg-surface-variant dark:bg-white/5 text-on-surface-variant dark:text-outline-variant border-outline-variant/20 dark:border-white/10';
+    const truncated = u.long_url.length > 38 ? u.long_url.slice(0, 38) + '...' : u.long_url;
+    const ownerBadge = u.owner
+      ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs border border-primary/20"><span class="material-symbols-outlined text-[12px]" style="font-variation-settings:'FILL' 1;">account_circle</span>${u.owner}</span>`
+      : `<span class="text-on-surface-variant dark:text-outline-variant opacity-50 text-xs">guest</span>`;
+
+    return `<tr class="border-b border-outline-variant/10 dark:border-white/5 hover:bg-surface-container/30 dark:hover:bg-white/[0.02] transition-colors group">
+      <td class="py-4 px-6 text-primary dark:text-inverse-primary font-bold">
+        <a href="${u.short_url}" target="_blank" class="hover:underline">/${u.short_code}</a>
+      </td>
+      <td class="py-4 px-6 text-on-surface-variant dark:text-outline-variant w-[240px] max-w-[240px]" title="${u.long_url}"><span class="block truncate">${truncated}</span></td>
+      <td class="py-4 px-6">
+        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full border text-xs ${badgeCls}">
+          <span class="material-symbols-outlined text-[14px]">visibility</span> ${u.click_count}
+        </span>
+      </td>
+      <td class="py-4 px-6">${ownerBadge}</td>
+      <td class="py-4 px-6 text-on-surface-variant dark:text-outline-variant">${formatDate(u.created_at)}</td>
+      <td class="py-4 px-6 text-right">
+        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onclick="copyText('${u.short_url}')" class="px-2 py-1 rounded-DEFAULT border border-outline-variant/20 dark:border-white/10 text-on-surface-variant dark:text-outline-variant hover:text-on-surface dark:hover:text-white transition-colors text-xs flex items-center gap-1">
+            <span class="material-symbols-outlined text-[13px]">content_copy</span> Copy
+          </button>
+          <button onclick="openQrModal('${u.short_code}','${u.short_url}')" class="px-2 py-1 rounded-DEFAULT border border-primary/20 text-primary hover:bg-primary/10 transition-colors text-xs flex items-center gap-1">
+            <span class="material-symbols-outlined text-[13px]">qr_code</span> QR
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Render Stats ──────────────────────────────────────────────────────
+function renderStats(urls) {
+  const clicks = urls.reduce((acc, u) => acc + u.click_count, 0);
+  const top    = urls.reduce((best, u) => u.click_count > (best?.click_count ?? -1) ? u : best, null);
+  document.getElementById('statTotal').textContent  = urls.length;
+  document.getElementById('statClicks').textContent = clicks;
+  document.getElementById('statTop').textContent    = top && top.click_count > 0 ? top.click_count : '—';
+}
+
+// ── Chart.js ──────────────────────────────────────────────────────────
+function renderChart(urls) {
+  const canvas = document.getElementById('analyticsChart');
+  const empty  = document.getElementById('chartEmpty');
+
+  const top5 = [...urls].sort((a, b) => b.click_count - a.click_count).slice(0, 5).filter(u => u.click_count > 0);
+
+  if (!top5.length) { canvas.style.display = 'none'; empty.style.display = 'flex'; return; }
+  canvas.style.display = 'block'; empty.style.display = 'none';
+
+  const isDark  = document.documentElement.classList.contains('dark');
+  const labels  = top5.map(u => '/' + u.short_code);
+  const data    = top5.map(u => u.click_count);
+  const gridClr = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  const txtClr  = isDark ? '#94a3b8' : '#49454f';
+
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Clicks',
+        data,
+        backgroundColor: 'rgba(124,58,237,0.7)',
+        borderColor: 'rgba(124,58,237,1)',
+        borderWidth: 2,
+        borderRadius: 8,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: isDark ? '#12121A' : '#fff',
+          borderColor: 'rgba(124,58,237,0.3)', borderWidth: 1,
+          titleColor: isDark ? '#e4e1e9' : '#1c1b1f',
+          bodyColor: isDark ? '#94a3b8' : '#49454f',
+          padding: 12, cornerRadius: 8,
+          callbacks: { label: ctx => ` ${ctx.parsed.y} clicks` }
+        }
+      },
+      scales: {
+        x: { grid: { color: gridClr }, ticks: { color: txtClr, font: { family: 'JetBrains Mono', size: 12 } } },
+        y: { grid: { color: gridClr }, ticks: { color: txtClr, font: { family: 'Inter', size: 12 }, stepSize: 1 }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ── QR Modal ──────────────────────────────────────────────────────────
+function openQrModal(shortCode, shortUrl) {
+  document.getElementById('qrShortUrl').textContent = shortUrl || `http://localhost:8000/${shortCode}`;
+  const src = `${API}/qr/${shortCode}?t=${Date.now()}`; // cache-bust prevents stale image
+  document.getElementById('qrImage').src = src;
+  document.getElementById('qrDownload').href     = `${API}/qr/${shortCode}`;
+  document.getElementById('qrDownload').download = `qr-${shortCode}.png`;
+  document.getElementById('qrModal').classList.add('open');
+}
+
+function closeQrModal() {
+  document.getElementById('qrModal').classList.remove('open');
+  document.getElementById('qrImage').src = ''; // clear on close
+}
+
+// Close modals on backdrop click or Escape key
+document.getElementById('authModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeAuthModal(); });
+document.getElementById('qrModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeQrModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeAuthModal(); closeQrModal(); } });
+
+// ── Helpers ───────────────────────────────────────────────────────────
+function copyResult() { copyText(document.getElementById('resultUrl').textContent); }
+function copyText(text) { navigator.clipboard.writeText(text).then(() => showToast('📋 Copied to clipboard!')); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function showError(msg) {
+  document.getElementById('errorMsg').textContent = msg;
+  document.getElementById('errorBox').classList.remove('hidden');
+}
+
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function showPricingToast(e) { e.preventDefault(); showToast('🎉 100% Free & Open Source. No pricing needed!'); }
+function showInfoToast(e, msg) { e.preventDefault(); showToast(msg); }
+</script>
+</body>
+</html>
