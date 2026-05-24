@@ -1,116 +1,171 @@
-# 🔗 URL Shortener API
+# ⚡ Trimly — URL Shortener
 
-A clean, beginner-friendly URL Shortener built with **Python**, **FastAPI**, and **SQLite**.
+A full-stack URL shortener built with **FastAPI**, **SQLite**, and vanilla **HTML/CSS/JS**.  
+Trim long URLs, track clicks, generate QR codes, and manage links with a personal account.
+
+---
+
+## 🚀 Live Features
+
+| Feature | Status |
+|---|---|
+| 🔗 URL Shortening (auto + custom alias) | ✅ |
+| 🔐 JWT Authentication (Register / Login) | ✅ |
+| 👤 User dashboard & personal links | ✅ |
+| 📊 Click analytics with Chart.js | ✅ |
+| 🖼️ QR Code generator (downloadable PNG) | ✅ |
+| 🌙 Dark / Light mode toggle | ✅ |
+| 📱 Fully responsive design | ✅ |
+| 📄 Swagger API docs at `/docs` | ✅ |
+
+---
 
 ## 🛠️ Tech Stack
 
-- **Python 3.x**
-- **FastAPI** — modern web framework for building APIs
-- **SQLAlchemy** — ORM for database interaction
-- **SQLite** — lightweight database (no setup needed)
-- **Pydantic** — data validation
+**Backend**
+- [FastAPI](https://fastapi.tiangolo.com/) — Modern Python web framework
+- [SQLAlchemy](https://www.sqlalchemy.org/) — ORM for database interaction
+- [SQLite](https://www.sqlite.org/) — Lightweight database, zero setup
+- [python-jose](https://python-jose.readthedocs.io/) — JWT token generation & validation
+- [bcrypt](https://pypi.org/project/bcrypt/) — Secure password hashing
+- [qrcode](https://pypi.org/project/qrcode/) — QR code image generation
+
+**Frontend**
+- Vanilla HTML / CSS / JavaScript
+- [Tailwind CSS](https://tailwindcss.com/) (via CDN)
+- [Chart.js](https://www.chartjs.org/) — Analytics bar chart
+- [Material Symbols](https://fonts.google.com/icons) — Icons
+
+---
 
 ## 📁 Project Structure
 
 ```
 url-shortener/
-├── main.py          # FastAPI app & all API routes
-├── database.py      # Database connection setup
-├── models.py        # Database table definitions
-├── schemas.py       # Request/Response data shapes
-├── utils.py         # Helper functions
-├── requirements.txt # Project dependencies
-└── README.md        # This file
+│
+├── backend/
+│   ├── main.py          # FastAPI app & all API routes
+│   ├── auth.py          # JWT auth logic (tokens, hashing)
+│   ├── models.py        # Database table definitions (User, URL)
+│   ├── schemas.py       # Pydantic request/response models
+│   ├── database.py      # DB connection & session setup
+│   ├── utils.py         # URL validation & short code generator
+│   └── requirements.txt # Python dependencies
+│
+├── frontend/
+│   └── index.html       # Complete UI (single page app)
+│
+├── db/
+│   └── url_shortener.db # SQLite database (auto-created, git-ignored)
+│
+├── .gitignore
+└── README.md
 ```
 
-## 🚀 How to Run
+---
 
-### 1. Install dependencies
+## ⚙️ How to Run Locally
+
+### 1. Clone the repository
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/Divyansh-1210/URL-Link-Shortener.git
+cd URL-Link-Shortener
 ```
 
-### 2. Start the server
+### 2. Install dependencies
 ```bash
+pip install -r backend/requirements.txt
+```
+
+### 3. Start the server
+```bash
+cd backend
 uvicorn main:app --reload
 ```
 
-### 3. Open API docs in browser
+### 4. Open in browser
 ```
-http://localhost:8000/docs
+http://localhost:8000
 ```
+
+> 📄 Interactive API docs available at: `http://localhost:8000/docs`
+
+---
 
 ## 📌 API Endpoints
 
+### Auth
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | Health check & welcome message |
-| POST | `/shorten` | Shorten a long URL |
-| GET | `/{short_code}` | Redirect to original URL |
-| GET | `/stats/{short_code}` | Get click stats for a URL |
-| GET | `/urls` | List all shortened URLs |
+| `POST` | `/register` | Create a new user account |
+| `POST` | `/login` | Login & receive JWT token |
+| `GET` | `/me` | Get current user profile |
+
+### URLs
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/shorten` | Shorten a URL (auth optional) |
+| `GET` | `/urls` | List all shortened URLs |
+| `GET` | `/my-urls` | List only your URLs (auth required) |
+| `GET` | `/stats/{code}` | Get click stats for a short URL |
+| `GET` | `/qr/{code}` | Get QR code PNG for a short URL |
+| `GET` | `/{code}` | Redirect to original URL |
+
+---
 
 ## 📋 Example Usage
+
+### Register
+```json
+POST /register
+{
+  "username": "john",
+  "email": "john@example.com",
+  "password": "mypassword"
+}
+```
 
 ### Shorten a URL
 ```json
 POST /shorten
+Authorization: Bearer <token>
+
 {
-  "long_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+  "long_url": "https://github.com/Divyansh-1210",
+  "custom_code": "my-github"
 }
 ```
 
 **Response:**
 ```json
 {
-  "short_code": "aB3xZ9",
-  "long_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-  "short_url": "http://localhost:8000/aB3xZ9",
-  "created_at": "2025-05-23T20:00:00",
-  "click_count": 0
+  "short_code": "my-github",
+  "long_url": "https://github.com/Divyansh-1210",
+  "short_url": "http://localhost:8000/my-github",
+  "created_at": "2025-05-24T14:00:00",
+  "click_count": 0,
+  "owner": "john"
 }
 ```
 
-### Custom Short Code
-```json
-POST /shorten
-{
-  "long_url": "https://github.com/yourusername",
-  "custom_code": "github"
-}
+### Get QR Code
+```
+GET /qr/my-github
+→ Returns PNG image
 ```
 
-### Get Stats
-```
-GET /stats/aB3xZ9
-```
+---
 
-**Response:**
-```json
-{
-  "short_code": "aB3xZ9",
-  "long_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-  "short_url": "http://localhost:8000/aB3xZ9",
-  "click_count": 42,
-  "created_at": "2025-05-23T20:00:00"
-}
-```
+## 🔮 Upcoming (Phase 4)
 
-## ✨ Features
+- [ ] Deploy on Render (free hosting)
+- [ ] Link expiry (auto-delete after N days)
+- [ ] Per-link analytics detail page
+- [ ] Email verification on register
 
-- ✅ Shorten any valid URL
-- ✅ Custom short codes (optional)
-- ✅ Auto-redirect when visiting short URL
-- ✅ Click tracking / analytics
-- ✅ Duplicate URL detection
-- ✅ List all shortened URLs
-- ✅ Auto-generated Swagger UI docs at `/docs`
+---
 
-## 🔮 Future Improvements (Phase 2 & 3)
+## 👨‍💻 Author
 
-- [ ] Frontend UI (HTML/CSS/JS)
-- [ ] User authentication (JWT)
-- [ ] Personal dashboard
-- [ ] URL expiry feature
-- [ ] QR code generation
-- [ ] Deploy to Render/Railway
+**Divyansh Singh**  
+GitHub: [@Divyansh-1210](https://github.com/Divyansh-1210)
