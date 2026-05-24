@@ -20,6 +20,16 @@ Trim long URLs, track clicks, generate QR codes, and manage links with a persona
 
 ---
 
+## 📸 Screenshots
+
+### API Docs (Swagger UI)
+![Swagger UI](screenshots/swagger.png)
+
+### Frontend UI
+![Frontend UI](screenshots/frontend.png)
+
+---
+
 ## 🛠️ Tech Stack
 
 **Backend**
