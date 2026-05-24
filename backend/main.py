@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pathlib import Path
 import qrcode
-import qrcode.image.svg
+import os
 from io import BytesIO
 
 import models, schemas, utils, auth
@@ -17,7 +17,7 @@ models.Base.metadata.create_all(bind=engine)
 # Paths
 BASE_DIR     = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
-BASE_URL     = "http://localhost:8000"
+BASE_URL     = os.environ.get("BASE_URL", "http://localhost:8000")
 
 app = FastAPI(
     title="Trimly URL Shortener API",
@@ -45,7 +45,7 @@ def serve_frontend():
 
 
 # ------------------------------------------------------------------
-# AUTH — Register
+# AUTH ΓÇö Register
 # ------------------------------------------------------------------
 @app.post("/register", response_model=schemas.TokenResponse, status_code=201)
 def register(request: schemas.UserRegister, db: Session = Depends(get_db)):
@@ -79,7 +79,7 @@ def register(request: schemas.UserRegister, db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# AUTH — Login
+# AUTH ΓÇö Login
 # ------------------------------------------------------------------
 @app.post("/login", response_model=schemas.TokenResponse)
 def login(request: schemas.UserLogin, db: Session = Depends(get_db)):
@@ -95,7 +95,7 @@ def login(request: schemas.UserLogin, db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# AUTH — Get current user profile
+# AUTH ΓÇö Get current user profile
 # ------------------------------------------------------------------
 @app.get("/me", response_model=schemas.UserResponse)
 def get_me(current_user: models.User = Depends(auth.get_current_user_required)):
@@ -104,7 +104,7 @@ def get_me(current_user: models.User = Depends(auth.get_current_user_required)):
 
 
 # ------------------------------------------------------------------
-# POST /shorten — Create short URL (works for both guests & logged-in)
+# POST /shorten ΓÇö Create short URL (works for both guests & logged-in)
 # ------------------------------------------------------------------
 @app.post("/shorten", response_model=schemas.URLResponse, status_code=201)
 def shorten_url(
@@ -161,7 +161,7 @@ def shorten_url(
 
 
 # ------------------------------------------------------------------
-# GET /urls — List all URLs
+# GET /urls ΓÇö List all URLs
 # ------------------------------------------------------------------
 @app.get("/urls", response_model=list[schemas.URLStats])
 def get_all_urls(db: Session = Depends(get_db)):
@@ -180,7 +180,7 @@ def get_all_urls(db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# GET /my-urls — List only current user's URLs
+# GET /my-urls ΓÇö List only current user's URLs
 # ------------------------------------------------------------------
 @app.get("/my-urls", response_model=list[schemas.URLStats])
 def get_my_urls(
@@ -226,7 +226,7 @@ def get_stats(short_code: str, db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# GET /qr/{short_code} — Generate QR Code
+# GET /qr/{short_code} ΓÇö Generate QR Code
 # ------------------------------------------------------------------
 @app.get("/qr/{short_code}")
 def get_qr_code(short_code: str, db: Session = Depends(get_db)):
@@ -259,7 +259,7 @@ def get_qr_code(short_code: str, db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# GET /{short_code} — Redirect (MUST be last)
+# GET /{short_code} ΓÇö Redirect (MUST be last)
 # ------------------------------------------------------------------
 @app.get("/{short_code}")
 def redirect_to_url(short_code: str, db: Session = Depends(get_db)):

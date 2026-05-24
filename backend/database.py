@@ -5,6 +5,7 @@ from pathlib import Path
 
 # DB lives in the /db folder at project root — path is always absolute
 DB_PATH = Path(__file__).resolve().parent.parent / "db" / "url_shortener.db"
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)  # create /db folder if missing
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(
