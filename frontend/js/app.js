@@ -1,13 +1,14 @@
-/* ═══════════════════════════════════════════════════════════════
-   Trimly — app.js
+/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+   Trimly ΓÇö app.js
    All frontend JavaScript logic
-═══════════════════════════════════════════════════════════════ */
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */
 
-const API = '';
+const API    = '';
+const ORIGIN = window.location.origin; // always the correct live domain
 let chartInstance = null;
 let currentView = 'all'; // 'all' or 'mine'
 
-// ── Init ──────────────────────────────────────────────────────
+// ΓöÇΓöÇ Init ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 document.addEventListener('DOMContentLoaded', () => {
   // Theme toggles
   ['theme-toggle', 'mobile-theme-toggle'].forEach(id => {
@@ -27,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadLinks();
 });
 
-// ── Auth State ────────────────────────────────────────────────
+// ΓöÇΓöÇ Auth State ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function updateNavAuth(username) {
   // Desktop
   document.getElementById('navGuest').classList.add('hidden');
@@ -51,7 +52,7 @@ function updateNavGuest() {
   document.getElementById('myLinksToggle').classList.add('hidden');
 }
 
-// ── Auth Modal ────────────────────────────────────────────────
+// ΓöÇΓöÇ Auth Modal ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function openAuthModal(tab = 'login') {
   document.getElementById('authModal').classList.add('open');
   switchTab(tab);
@@ -86,7 +87,7 @@ function clearAuthErrors() {
   document.getElementById('regError').classList.add('hidden');
 }
 
-// ── Login ─────────────────────────────────────────────────────
+// ΓöÇΓöÇ Login ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function doLogin() {
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value;
@@ -106,13 +107,13 @@ async function doLogin() {
     localStorage.setItem('username', data.username);
     updateNavAuth(data.username);
     closeAuthModal();
-    showToast(`👋 Welcome back, ${data.username}!`);
+    showToast(`≡ƒæï Welcome back, ${data.username}!`);
     loadLinks();
   } catch { showAuthError('login', 'Network error.'); }
   finally { btn.disabled = false; spinner.style.display = 'none'; }
 }
 
-// ── Register ──────────────────────────────────────────────────
+// ΓöÇΓöÇ Register ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function doRegister() {
   const username = document.getElementById('regUsername').value.trim();
   const email    = document.getElementById('regEmail').value.trim();
@@ -133,7 +134,7 @@ async function doRegister() {
     localStorage.setItem('username', data.username);
     updateNavAuth(data.username);
     closeAuthModal();
-    showToast(`🎉 Account created! Welcome, ${data.username}!`);
+    showToast(`≡ƒÄë Account created! Welcome, ${data.username}!`);
     loadLinks();
   } catch { showAuthError('reg', 'Network error.'); }
   finally { btn.disabled = false; spinner.style.display = 'none'; }
@@ -145,18 +146,18 @@ function showAuthError(form, msg) {
   document.getElementById(`${prefix}ErrorMsg`).textContent = msg;
 }
 
-// ── Logout ────────────────────────────────────────────────────
+// ΓöÇΓöÇ Logout ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function doLogout() {
   localStorage.removeItem('token');
   localStorage.removeItem('username');
   updateNavGuest();
   currentView = 'all';
   switchLinksView('all');
-  showToast('👋 Logged out successfully!');
+  showToast('≡ƒæï Logged out successfully!');
   loadLinks();
 }
 
-// ── Links View Toggle (All / Mine) ────────────────────────────
+// ΓöÇΓöÇ Links View Toggle (All / Mine) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function switchLinksView(view) {
   currentView = view;
   document.getElementById('btnAllLinks').classList.toggle('text-primary', view === 'all');
@@ -172,7 +173,7 @@ function switchLinksView(view) {
   loadLinks();
 }
 
-// ── Shorten URL ───────────────────────────────────────────────
+// ΓöÇΓöÇ Shorten URL ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function shortenURL() {
   const longUrl    = document.getElementById('longUrlInput').value.trim();
   const customCode = document.getElementById('customCodeInput').value.trim();
@@ -201,11 +202,12 @@ async function shortenURL() {
     const data = await res.json();
     if (!res.ok) { showError(data.detail || 'Something went wrong.'); return; }
 
+    const shortUrl = `${ORIGIN}/${data.short_code}`;
     const urlEl = document.getElementById('resultUrl');
-    urlEl.textContent = data.short_url; urlEl.href = data.short_url;
+    urlEl.textContent = shortUrl; urlEl.href = shortUrl;
     document.getElementById('resultMeta').textContent =
       `Code: ${data.short_code}  ·  ${data.owner ? '👤 ' + data.owner : '🌐 Anonymous'}  ·  ${formatDate(data.created_at)}`;
-    document.getElementById('resultQrBtn').onclick = () => openQrModal(data.short_code, data.short_url);
+    document.getElementById('resultQrBtn').onclick = () => openQrModal(data.short_code, shortUrl);
 
     resultBox.classList.remove('hidden'); resultBox.classList.add('slide-down');
     document.getElementById('longUrlInput').value = '';
@@ -218,7 +220,7 @@ async function shortenURL() {
   }
 }
 
-// ── Load Links ────────────────────────────────────────────────
+// ΓöÇΓöÇ Load Links ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function loadLinks() {
   try {
     const token = localStorage.getItem('token');
@@ -233,7 +235,7 @@ async function loadLinks() {
   } catch (err) { console.error('Failed to load links:', err); }
 }
 
-// ── Render Table ──────────────────────────────────────────────
+// ΓöÇΓöÇ Render Table ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function renderTable(urls) {
   const tbody = document.getElementById('linksBody');
   if (!urls.length) {
@@ -254,9 +256,10 @@ function renderTable(urls) {
       ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs border border-primary/20"><span class="material-symbols-outlined text-[12px]" style="font-variation-settings:'FILL' 1;">account_circle</span>${u.owner}</span>`
       : `<span class="text-on-surface-variant dark:text-outline-variant opacity-50 text-xs">guest</span>`;
 
+    const rowShortUrl = `${ORIGIN}/${u.short_code}`;
     return `<tr class="border-b border-outline-variant/10 dark:border-white/5 hover:bg-surface-container/30 dark:hover:bg-white/[0.02] transition-colors group">
       <td class="py-4 px-6 text-primary dark:text-inverse-primary font-bold">
-        <a href="${u.short_url}" target="_blank" class="hover:underline">/${u.short_code}</a>
+        <a href="${rowShortUrl}" target="_blank" class="hover:underline">/${u.short_code}</a>
       </td>
       <td class="py-4 px-6 text-on-surface-variant dark:text-outline-variant w-[240px] max-w-[240px]" title="${u.long_url}"><span class="block truncate">${truncated}</span></td>
       <td class="py-4 px-6">
@@ -268,10 +271,10 @@ function renderTable(urls) {
       <td class="py-4 px-6 text-on-surface-variant dark:text-outline-variant">${formatDate(u.created_at)}</td>
       <td class="py-4 px-6 text-right">
         <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onclick="copyText('${u.short_url}')" class="px-2 py-1 rounded-DEFAULT border border-outline-variant/20 dark:border-white/10 text-on-surface-variant dark:text-outline-variant hover:text-on-surface dark:hover:text-white transition-colors text-xs flex items-center gap-1">
+          <button onclick="copyText('${rowShortUrl}')" class="px-2 py-1 rounded-DEFAULT border border-outline-variant/20 dark:border-white/10 text-on-surface-variant dark:text-outline-variant hover:text-on-surface dark:hover:text-white transition-colors text-xs flex items-center gap-1">
             <span class="material-symbols-outlined text-[13px]">content_copy</span> Copy
           </button>
-          <button onclick="openQrModal('${u.short_code}','${u.short_url}')" class="px-2 py-1 rounded-DEFAULT border border-primary/20 text-primary hover:bg-primary/10 transition-colors text-xs flex items-center gap-1">
+          <button onclick="openQrModal('${u.short_code}','${rowShortUrl}')" class="px-2 py-1 rounded-DEFAULT border border-primary/20 text-primary hover:bg-primary/10 transition-colors text-xs flex items-center gap-1">
             <span class="material-symbols-outlined text-[13px]">qr_code</span> QR
           </button>
         </div>
@@ -280,16 +283,16 @@ function renderTable(urls) {
   }).join('');
 }
 
-// ── Render Stats ──────────────────────────────────────────────
+// ΓöÇΓöÇ Render Stats ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function renderStats(urls) {
   const clicks = urls.reduce((acc, u) => acc + u.click_count, 0);
   const top    = urls.reduce((best, u) => u.click_count > (best?.click_count ?? -1) ? u : best, null);
   document.getElementById('statTotal').textContent  = urls.length;
   document.getElementById('statClicks').textContent = clicks;
-  document.getElementById('statTop').textContent    = top && top.click_count > 0 ? top.click_count : '—';
+  document.getElementById('statTop').textContent    = top && top.click_count > 0 ? top.click_count : 'ΓÇö';
 }
 
-// ── Chart.js ──────────────────────────────────────────────────
+// ΓöÇΓöÇ Chart.js ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function renderChart(urls) {
   const canvas = document.getElementById('analyticsChart');
   const empty  = document.getElementById('chartEmpty');
@@ -342,9 +345,9 @@ function renderChart(urls) {
   });
 }
 
-// ── QR Modal ──────────────────────────────────────────────────
+// ΓöÇΓöÇ QR Modal ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function openQrModal(shortCode, shortUrl) {
-  document.getElementById('qrShortUrl').textContent = shortUrl || `http://localhost:8000/${shortCode}`;
+  document.getElementById('qrShortUrl').textContent = shortUrl || `${ORIGIN}/${shortCode}`;
   const src = `${API}/qr/${shortCode}?t=${Date.now()}`; // cache-bust
   document.getElementById('qrImage').src = src;
   document.getElementById('qrDownload').href     = `${API}/qr/${shortCode}`;
@@ -362,9 +365,9 @@ document.getElementById('authModal').addEventListener('click', e => { if (e.targ
 document.getElementById('qrModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeQrModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeAuthModal(); closeQrModal(); } });
 
-// ── Helpers ───────────────────────────────────────────────────
+// ΓöÇΓöÇ Helpers ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function copyResult() { copyText(document.getElementById('resultUrl').textContent); }
-function copyText(text) { navigator.clipboard.writeText(text).then(() => showToast('📋 Copied to clipboard!')); }
+function copyText(text) { navigator.clipboard.writeText(text).then(() => showToast('≡ƒôï Copied to clipboard!')); }
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -382,5 +385,5 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function showPricingToast(e) { e.preventDefault(); showToast('🎉 100% Free & Open Source. No pricing needed!'); }
+function showPricingToast(e) { e.preventDefault(); showToast('≡ƒÄë 100% Free & Open Source. No pricing needed!'); }
 function showInfoToast(e, msg) { e.preventDefault(); showToast(msg); }
