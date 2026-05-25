@@ -21,7 +21,12 @@ models.Base.metadata.create_all(bind=engine)
 # Paths
 BASE_DIR     = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
-BASE_URL     = os.environ.get("BASE_URL", "http://localhost:8000")
+# Auto-detect Render's URL, or use BASE_URL env var, or fallback to localhost
+BASE_URL = (
+    os.environ.get("BASE_URL") or
+    os.environ.get("RENDER_EXTERNAL_URL") or
+    "http://localhost:8000"
+).rstrip("/")
 
 app = FastAPI(
     title="Trimly URL Shortener API",
