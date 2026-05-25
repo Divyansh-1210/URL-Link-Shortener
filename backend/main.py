@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.responses import RedirectResponse, FileResponse, Response
+from fastapi.responses import RedirectResponse, FileResponse, Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -7,6 +7,8 @@ from pathlib import Path
 import qrcode
 import os
 import logging
+import asyncio
+import httpx
 from io import BytesIO
 
 logging.basicConfig(level=logging.INFO)
@@ -54,7 +56,35 @@ def serve_frontend():
 
 
 # ------------------------------------------------------------------
-# AUTH ╬ô├ç├╢ Register
+# PING — Health check (use this to test if server is reachable)
+# ------------------------------------------------------------------
+@app.get("/ping")
+def ping():
+    logger.info("Ping received — server is awake!")
+    return JSONResponse({"status": "ok", "message": "Trimly is alive!"})
+
+
+# ------------------------------------------------------------------
+# STARTUP — Keep-alive background task
+# ------------------------------------------------------------------
+@app.on_event("startup")
+async def start_keepalive():
+    """Ping self every 4 minutes to prevent Render free tier sleep"""
+    async def keepalive():
+        await asyncio.sleep(60)  # wait 1 min after startup
+        while True:
+            try:
+                async with httpx.AsyncClient() as client:
+                    await client.get(f"{BASE_URL}/ping", timeout=10)
+                    logger.info("Keepalive ping sent.")
+            except Exception as e:
+                logger.warning(f"Keepalive failed: {e}")
+            await asyncio.sleep(240)  # every 4 minutes
+    asyncio.create_task(keepalive())
+
+
+# ------------------------------------------------------------------
+# AUTH Γò¼├┤Γö£├ºΓö£Γòó Register
 # ------------------------------------------------------------------
 @app.post("/register", response_model=schemas.TokenResponse, status_code=201)
 def register(request: schemas.UserRegister, db: Session = Depends(get_db)):
@@ -88,7 +118,7 @@ def register(request: schemas.UserRegister, db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# AUTH ╬ô├ç├╢ Login
+# AUTH Γò¼├┤Γö£├ºΓö£Γòó Login
 # ------------------------------------------------------------------
 @app.post("/login", response_model=schemas.TokenResponse)
 def login(request: schemas.UserLogin, db: Session = Depends(get_db)):
@@ -104,7 +134,7 @@ def login(request: schemas.UserLogin, db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# AUTH ╬ô├ç├╢ Get current user profile
+# AUTH Γò¼├┤Γö£├ºΓö£Γòó Get current user profile
 # ------------------------------------------------------------------
 @app.get("/me", response_model=schemas.UserResponse)
 def get_me(current_user: models.User = Depends(auth.get_current_user_required)):
@@ -113,7 +143,7 @@ def get_me(current_user: models.User = Depends(auth.get_current_user_required)):
 
 
 # ------------------------------------------------------------------
-# POST /shorten ╬ô├ç├╢ Create short URL (works for both guests & logged-in)
+# POST /shorten Γò¼├┤Γö£├ºΓö£Γòó Create short URL (works for both guests & logged-in)
 # ------------------------------------------------------------------
 @app.post("/shorten", response_model=schemas.URLResponse, status_code=201)
 def shorten_url(
@@ -170,7 +200,7 @@ def shorten_url(
 
 
 # ------------------------------------------------------------------
-# GET /urls ╬ô├ç├╢ List all URLs
+# GET /urls Γò¼├┤Γö£├ºΓö£Γòó List all URLs
 # ------------------------------------------------------------------
 @app.get("/urls", response_model=list[schemas.URLStats])
 def get_all_urls(db: Session = Depends(get_db)):
@@ -189,7 +219,7 @@ def get_all_urls(db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# GET /my-urls ╬ô├ç├╢ List only current user's URLs
+# GET /my-urls Γò¼├┤Γö£├ºΓö£Γòó List only current user's URLs
 # ------------------------------------------------------------------
 @app.get("/my-urls", response_model=list[schemas.URLStats])
 def get_my_urls(
@@ -235,7 +265,7 @@ def get_stats(short_code: str, db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# GET /qr/{short_code} ╬ô├ç├╢ Generate QR Code
+# GET /qr/{short_code} Γò¼├┤Γö£├ºΓö£Γòó Generate QR Code
 # ------------------------------------------------------------------
 @app.get("/qr/{short_code}")
 def get_qr_code(short_code: str, db: Session = Depends(get_db)):
@@ -268,7 +298,7 @@ def get_qr_code(short_code: str, db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# GET /{short_code} — Redirect (MUST be last)
+# GET /{short_code} ΓÇö Redirect (MUST be last)
 # ------------------------------------------------------------------
 @app.get("/{short_code}")
 def redirect_to_url(short_code: str, db: Session = Depends(get_db)):
