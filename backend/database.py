@@ -1,12 +1,14 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from pathlib import Path
+import logging
 
-# DB lives in the /db folder at project root — path is always absolute
-DB_PATH = Path(__file__).resolve().parent.parent / "db" / "url_shortener.db"
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)  # create /db folder if missing
+# Use /tmp on Render (always writable), fallback to local db/ for dev
+DB_PATH = "/tmp/url_shortener.db"
 DATABASE_URL = f"sqlite:///{DB_PATH}"
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 engine = create_engine(
     DATABASE_URL, connect_args={"check_same_thread": False}

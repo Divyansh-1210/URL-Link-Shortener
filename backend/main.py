@@ -6,7 +6,11 @@ from sqlalchemy.orm import Session
 from pathlib import Path
 import qrcode
 import os
+import logging
 from io import BytesIO
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 import models, schemas, utils, auth
 from database import engine, get_db
@@ -45,7 +49,7 @@ def serve_frontend():
 
 
 # ------------------------------------------------------------------
-# AUTH ΓÇö Register
+# AUTH ╬ô├ç├╢ Register
 # ------------------------------------------------------------------
 @app.post("/register", response_model=schemas.TokenResponse, status_code=201)
 def register(request: schemas.UserRegister, db: Session = Depends(get_db)):
@@ -79,7 +83,7 @@ def register(request: schemas.UserRegister, db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# AUTH ΓÇö Login
+# AUTH ╬ô├ç├╢ Login
 # ------------------------------------------------------------------
 @app.post("/login", response_model=schemas.TokenResponse)
 def login(request: schemas.UserLogin, db: Session = Depends(get_db)):
@@ -95,7 +99,7 @@ def login(request: schemas.UserLogin, db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# AUTH ΓÇö Get current user profile
+# AUTH ╬ô├ç├╢ Get current user profile
 # ------------------------------------------------------------------
 @app.get("/me", response_model=schemas.UserResponse)
 def get_me(current_user: models.User = Depends(auth.get_current_user_required)):
@@ -104,7 +108,7 @@ def get_me(current_user: models.User = Depends(auth.get_current_user_required)):
 
 
 # ------------------------------------------------------------------
-# POST /shorten ΓÇö Create short URL (works for both guests & logged-in)
+# POST /shorten ╬ô├ç├╢ Create short URL (works for both guests & logged-in)
 # ------------------------------------------------------------------
 @app.post("/shorten", response_model=schemas.URLResponse, status_code=201)
 def shorten_url(
@@ -161,7 +165,7 @@ def shorten_url(
 
 
 # ------------------------------------------------------------------
-# GET /urls ΓÇö List all URLs
+# GET /urls ╬ô├ç├╢ List all URLs
 # ------------------------------------------------------------------
 @app.get("/urls", response_model=list[schemas.URLStats])
 def get_all_urls(db: Session = Depends(get_db)):
@@ -180,7 +184,7 @@ def get_all_urls(db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# GET /my-urls ΓÇö List only current user's URLs
+# GET /my-urls ╬ô├ç├╢ List only current user's URLs
 # ------------------------------------------------------------------
 @app.get("/my-urls", response_model=list[schemas.URLStats])
 def get_my_urls(
@@ -226,7 +230,7 @@ def get_stats(short_code: str, db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# GET /qr/{short_code} ΓÇö Generate QR Code
+# GET /qr/{short_code} ╬ô├ç├╢ Generate QR Code
 # ------------------------------------------------------------------
 @app.get("/qr/{short_code}")
 def get_qr_code(short_code: str, db: Session = Depends(get_db)):
@@ -259,13 +263,21 @@ def get_qr_code(short_code: str, db: Session = Depends(get_db)):
 
 
 # ------------------------------------------------------------------
-# GET /{short_code} ΓÇö Redirect (MUST be last)
+# GET /{short_code} — Redirect (MUST be last)
 # ------------------------------------------------------------------
 @app.get("/{short_code}")
 def redirect_to_url(short_code: str, db: Session = Depends(get_db)):
-    url_entry = db.query(models.URL).filter(models.URL.short_code == short_code).first()
-    if not url_entry:
-        raise HTTPException(status_code=404, detail=f"Short URL '{short_code}' not found.")
-    url_entry.click_count += 1
-    db.commit()
-    return RedirectResponse(url=url_entry.long_url)
+    try:
+        url_entry = db.query(models.URL).filter(models.URL.short_code == short_code).first()
+        if not url_entry:
+            raise HTTPException(status_code=404, detail=f"Short URL '{short_code}' not found.")
+        # Capture long_url BEFORE commit (avoids session expiry issues)
+        long_url = url_entry.long_url
+        url_entry.click_count += 1
+        db.commit()
+        return RedirectResponse(url=long_url)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Redirect error for '{short_code}': {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"Redirect failed: {type(e).__name__}: {str(e)}")
